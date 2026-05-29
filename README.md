@@ -1,1 +1,3 @@
-# SNN
+# CSCE-SNN: Cosine Similarity Contrast Encoding Spiking Neural Network
+
+This repository contains the official PyTorch implementation of **CSCE-SNN**, a bio-inspired Hybrid CNN-SNN framework for efficient static image classification on the MNIST dataset...
