@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import snntorch as snn
-from snntorch import surrogate
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
@@ -98,7 +97,7 @@ class SNNModel(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
         self.fc = nn.Linear(64 * 7 * 7, 10)
 
-        spike_grad = surrogate.fast_sigmoid()
+        spike_grad = snn.surrogate.fast_sigmoid()
 
         self.lif1 = snn.Leaky(beta=0.9, threshold=1.0, spike_grad=spike_grad)
         self.lif2 = snn.Leaky(beta=0.9, threshold=1.0, spike_grad=spike_grad)
@@ -204,7 +203,15 @@ def evaluate_model():
 """***** Run and save best *****"""
 if __name__ == "__main__":
     best_acc = 0
-    best_report = {}
+    
+    best_report = {
+        "T": TIMESTEP,
+        "Thresh": THRESHOLD,
+        "Acc": 0.0,
+        "In_Spk_Per_Img": 0.0,
+        "SNN_Spk_Per_Img": 0.0,
+        "Sparsity": 0.0
+    }
 
     print("\n" + "="*70)
     print(f"STARTING SINGLE CONFIGURATION TRAIN & BENCHMARK")
@@ -255,9 +262,13 @@ if __name__ == "__main__":
         print(f"Best Accuracy So Far: {best_acc:.2f}%")
 
     """***** Load best and report *****""" 
-    checkpoint = torch.load(f"{EXPERIMENT_NAME}.pth")
-    feature_net.load_state_dict(checkpoint["feature_net"])
-    snn_model.load_state_dict(checkpoint["snn_model"])
+    try:
+        checkpoint = torch.load(f"{EXPERIMENT_NAME}.pth")
+        feature_net.load_state_dict(checkpoint["feature_net"])
+        snn_model.load_state_dict(checkpoint["snn_model"])
+        saved_acc_msg = f"Saved Best Accuracy: {checkpoint['best_acc']:.2f}% (At Epoch {checkpoint['epoch'] + 1})"
+    except FileNotFoundError:
+        saved_acc_msg = "No checkpoint file found (Model didn't improve during training)."
 
     print("\n" + "="*70)
     print("FINAL BENCHMARK REPORT (BEST MODEL METRICS)")
@@ -269,4 +280,4 @@ if __name__ == "__main__":
     print(f"SNN Spikes (Per Image)  : {best_report['SNN_Spk_Per_Img']}")
     print(f"System Sparsity (%)     : {best_report['Sparsity']}%")
     print("="*70)
-    print(f"Saved Best Accuracy: {checkpoint['best_acc']:.2f}% (At Epoch {checkpoint['epoch'] + 1})")
+    print(saved_acc_msg)
