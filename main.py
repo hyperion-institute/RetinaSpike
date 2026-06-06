@@ -57,7 +57,7 @@ def compute_contrast(f):
     patches = F.unfold(f, kernel_size=3, padding=1)
     patches = patches.view(B, C, 9, H, W)
     center = f.unsqueeze(2)
-    sim = (center * patches).sum(dim=1) # cosine similarity
+    sim = (center * patches).sum(dim=1)
     contrast = (1 - sim).sum(dim=1)
     return contrast
 
