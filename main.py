@@ -1,5 +1,3 @@
-import random
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,17 +5,11 @@ import snntorch as snn
 from snntorch import surrogate
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-from google.colab import files
 
-# =========================================================
-# DEVICE
-# =========================================================
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-# =========================================================
-# GLOBAL CONFIG
-# =========================================================
+"""***** Config *****"""
 TIMESTEP = 12
 THRESHOLD = 0.4
 
@@ -25,11 +17,9 @@ EPOCHS = 10
 BATCH_SIZE = 64
 LEARNING_RATE = 1e-3
 
-EXPERIMENT_NAME = "cossimilarity_constrast_encode"
+EXPERIMENT_NAME = "cossimilarity_contrast_encode"
 
-# =========================================================
-# DATA
-# =========================================================
+"""***** Data *****"""
 transform = transforms.Compose([
     transforms.ToTensor()
 ])
@@ -40,9 +30,7 @@ test_dataset = datasets.MNIST(root="./data", train=False, download=True, transfo
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-# =========================================================
-# FEATURE EXTRACTOR
-# =========================================================
+"""***** Feature Extractor *****"""
 class FeatureExtractor(nn.Module):
     def __init__(self):
         super().__init__()
@@ -63,21 +51,17 @@ class FeatureExtractor(nn.Module):
         x = x / norm
         return x
 
-# =========================================================
-# CONTRAST / SIMILARITY
-# =========================================================
+"""***** Cosine similarity / Contrast *****"""
 def compute_contrast(f):
     B, C, H, W = f.shape
     patches = F.unfold(f, kernel_size=3, padding=1)
     patches = patches.view(B, C, 9, H, W)
     center = f.unsqueeze(2)
-    sim = (center * patches).sum(dim=1)
+    sim = (center * patches).sum(dim=1) # cosine similarity
     contrast = (1 - sim).sum(dim=1)
     return contrast
 
-# =========================================================
-# ENCODING -> SPIKE
-# =========================================================
+"""***** Encoding to Spike *****"""
 def encode_to_spike(contrast, T=TIMESTEP, threshold=THRESHOLD):
     B, H, W = contrast.shape
 
@@ -106,9 +90,7 @@ def encode_to_spike(contrast, T=TIMESTEP, threshold=THRESHOLD):
 
     return spike
 
-# =========================================================
-# SNN MODEL WITH ACTIVE SPIKE COUNTER
-# =========================================================
+"""***** SNN model *****"""
 class SNNModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -130,7 +112,7 @@ class SNNModel(nn.Module):
 
         out_sum = torch.zeros(B, 10, device=spike.device)
         snn_internal_spikes = 0.0
-
+        
         for t in range(T):
             x = spike[t]
 
@@ -154,9 +136,7 @@ class SNNModel(nn.Module):
 
         return out_sum / T, snn_internal_spikes
 
-# =========================================================
-# INIT MODEL
-# =========================================================
+"""***** Initialize model  *****"""
 feature_net = FeatureExtractor().to(device)
 snn_model = SNNModel().to(device)
 
@@ -167,9 +147,7 @@ optimizer = torch.optim.Adam(
 
 criterion = nn.CrossEntropyLoss()
 
-# =========================================================
-# TRAIN ONE EPOCH
-# =========================================================
+"""***** Train *****"""
 def train():
     feature_net.train()
     snn_model.train()
@@ -193,9 +171,7 @@ def train():
 
     return running_loss
 
-# =========================================================
-# EVALUATE MODEL
-# =========================================================
+"""***** Evaluate *****"""
 def evaluate_model():
     feature_net.eval()
     snn_model.eval()
@@ -225,9 +201,7 @@ def evaluate_model():
     acc = 100.0 * correct / total
     return acc, total_input_spikes, total_snn_spikes
 
-# =========================================================
-# RUN + SAVE BEST MODEL
-# =========================================================
+"""***** Run and save best *****"""
 if __name__ == "__main__":
     best_acc = 0
     best_report = {}
@@ -280,9 +254,7 @@ if __name__ == "__main__":
 
         print(f"Best Accuracy So Far: {best_acc:.2f}%")
 
-    # =========================================================
-    # LOAD BEST MODEL & REPORT
-    # =========================================================
+    """***** Load best and report *****""" 
     checkpoint = torch.load(f"{EXPERIMENT_NAME}.pth")
     feature_net.load_state_dict(checkpoint["feature_net"])
     snn_model.load_state_dict(checkpoint["snn_model"])
@@ -298,6 +270,3 @@ if __name__ == "__main__":
     print(f"System Sparsity (%)     : {best_report['Sparsity']}%")
     print("="*70)
     print(f"Saved Best Accuracy: {checkpoint['best_acc']:.2f}% (At Epoch {checkpoint['epoch'] + 1})")
-
-    print(f"Download model          : {EXPERIMENT_NAME}")
-    files.download(f"{EXPERIMENT_NAME}.pth")
