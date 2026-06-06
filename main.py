@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import snntorch as snn
+from snntorch import surrogate
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
@@ -97,7 +98,7 @@ class SNNModel(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
         self.fc = nn.Linear(64 * 7 * 7, 10)
 
-        spike_grad = snn.surrogate.fast_sigmoid()
+        spike_grad = surrogate.fast_sigmoid()
 
         self.lif1 = snn.Leaky(beta=0.9, threshold=1.0, spike_grad=spike_grad)
         self.lif2 = snn.Leaky(beta=0.9, threshold=1.0, spike_grad=spike_grad)
