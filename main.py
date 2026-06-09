@@ -17,7 +17,7 @@ EPOCHS = 10
 BATCH_SIZE = 64
 LEARNING_RATE = 1e-3
 
-EXPERIMENT_NAME = "cossimilarity_contrast_encode"
+EXPERIMENT_NAME = "cosine_similarity_contrast_encode"
 
 """***** Data *****"""
 transform = transforms.Compose([
