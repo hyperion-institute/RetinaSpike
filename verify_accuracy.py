@@ -1,7 +1,7 @@
 feature_net = FeatureExtractor().to(device)
 snn_model = SNNModel().to(device)
 
-checkpoint = torch.load("cosine_similarity_contrast_encode.pth", map_location=device)
+checkpoint = torch.load("CSCE.pth", map_location=device)
 
 feature_net.load_state_dict(checkpoint["feature_net"])
 snn_model.load_state_dict(checkpoint["snn_model"])
