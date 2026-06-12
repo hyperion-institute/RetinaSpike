@@ -17,7 +17,7 @@ EPOCHS = 10
 BATCH_SIZE = 64
 LEARNING_RATE = 1e-3
 
-EXPERIMENT_NAME = "CSCE"
+EXPERIMENT_NAME = "RetinaSpike"
 
 """***** Data *****"""
 transform = transforms.Compose([
