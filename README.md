@@ -41,7 +41,7 @@ The end-to-end data processing workflow operates as follows:
 
 The model is optimized for hardware-friendly deployment, prioritizing high network sparsity:
 
-* **TIMESTEP ($T$) = 12**: The number of simulation time steps for spiking neurons.
+* **TIMESTEP  = 12**: The number of simulation time steps for spiking neurons.
 * **THRESHOLD = 0.4**: The quantile threshold for contrast filtering (effectively zeroing out background noise).
 * **Surrogate Gradient**: Employs `fast_sigmoid` to bypass the non-differentiable nature of discrete binary spikes during backpropagation.
 
