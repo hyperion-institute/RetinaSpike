@@ -196,10 +196,3 @@ By encoding structural saliency rather than raw intensity, the network focuses c
 * Attention-guided spike generation
 * Self-supervised retinal representation learning
 
----
-
-## Citation
-
-If you use RetinaSpike in your research, please cite:
-
-RetinaSpike: Retina-Inspired Contrast-Aware Spiking Neural Network for Sparse Visual Encoding and Object Recognition.
