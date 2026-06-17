@@ -110,20 +110,39 @@ Membrane potentials accumulate over time and produce the final classification ou
 ## Data Processing Pipeline
 
 Input Image
+
 ↓
+
 Feature Extraction
+
 ↓
-Feature-Space Contrast Detection
+
+Feature Normalization
+
 ↓
-Contrast Saliency Map
+
+Local Contrast Estimation
+
 ↓
+
+Salient Region Selection
+
+↓
+
 Latency Spike Encoding
+
 ↓
-Sparse Spike Sequence
+
+Sparse Spatio-Temporal Representation
+
 ↓
-Spiking Neural Network
+
+Spiking Neural Processing
+
 ↓
-Classification Output
+
+Classification
+
 
 ---
 
