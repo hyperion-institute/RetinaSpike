@@ -1,53 +1,205 @@
-# RetinaSpike: Bio-Inspired Contrast-Encoded Spiking Neural Network
+# RetinaSpike: Retina-Inspired Contrast-Aware Spiking Neural Network
 
-RetinaSpike is a research and implementation project of a hybrid **CNN-SNN** architecture that accurately mimics the primary visual processing mechanism of the **Human Retina**. Instead of feeding raw pixel data directly into deep neural layers, the system utilizes a feature extractor combined with a Cosine Similarity-based **Lateral Inhibition** mechanism to convert images into sparse, information-rich, and energy-efficient spiking sequences.
+RetinaSpike is a hybrid CNN-SNN architecture inspired by the visual preprocessing capabilities of the biological retina. Instead of transmitting raw pixel intensities directly to a neural network, RetinaSpike identifies structurally distinctive regions within an image and converts them into sparse temporal spike sequences.
 
----
+The core idea originates from a fundamental property of the retina: before visual information reaches the brain, retinal circuits emphasize object boundaries, contours, corners, and local structural changes while suppressing redundant background information. This process allows the visual system to focus on the most informative visual cues required for rapid object recognition.
 
-## 👁️ Bio-Inspired Mechanism: From Retina to Spike Encoding
-
-In natural visual systems, the retina does not act like a conventional camera that transmits raw pixels directly to the brain. Instead, it functions as a highly sophisticated data pre-processor. 
-
-The architecture of **RetinaSpike** is specifically designed to replicate this 3-tier biological structure:
-### 1. Primary Visual Cortex & Ganglion Cells (Feature Extractor)
-* **Biological Counterpart:** Photoreceptors receive light and pass signals through ganglion cells to extract low-level features such as orientation, edges, and corners.
-* **In-Code Implementation:** The `FeatureExtractor` class (consisting of Conv2d + ReLU layers) acts as biological receptive fields. It transforms a 1-channel raw grayscale image into 64 channels of abstract latent features, followed by L2 normalization to eliminate intensity fluctuations and illumination noise.
-
-### 2. Lateral Inhibition via Horizontal Cells (Cosine Similarity)
-* **Biological Counterpart:** Horizontal cells implement a mechanism known as **Lateral Inhibition**. When a specific neuron fires, it inhibits its neighboring neurons. This mechanism makes the human eye exceptionally sensitive to **contrast, boundaries, and sudden structural transitions**, while effectively filtering out homogenous, redundant backgrounds.
-* **In-Code Implementation:** The `compute_contrast` function models this exact phenomenon. By sliding a $3 \times 3$ window across the feature maps, the system computes the **Cosine Similarity** between the center pixel and its 8 neighbors.
-  * If the neighborhood shares identical features with the center (homogenous region), the similarity is high $\rightarrow$ Contrast drops to $0$ (Fully Inhibited).
-  * If the neighborhood differs significantly (structural edge), the similarity is low $\rightarrow$ Contrast spikes up (Highly Excited).
-
-### 3. Time-to-First-Spike / Latency Coding
-* **Biological Counterpart:** Stimuli with higher contrast cause optic nerve cells to accumulate membrane potential faster, prompting them to **fire spikes earlier** to transmit urgent information to the brain.
-* **In-Code Implementation:** The `encode_to_spike` function filters out regions where contrast exceeds a predefined `THRESHOLD`. Vips of maximum contrast are mapped to fire at the earliest timesteps ($t \rightarrow 0$), while lower contrast regions fire later, creating a binary spike tensor sequence over time with the shape `[T, B, 1, H, W]`.
+RetinaSpike adopts this principle by combining feature extraction, contrast-based saliency detection, and latency-based spike encoding into a unified visual processing pipeline.
 
 ---
 
-## ⚡ Data Pipeline Architecture
+## Biological Inspiration
 
-The end-to-end data processing workflow operates as follows:
+The human retina is not a passive camera sensor. It performs significant preprocessing before sending signals through the optic nerve.
 
-1. **Input Data:** Raw MNIST images $[B, 1, 28, 28]$ are fed into the network.
-2. **Feature Extraction:** Maps the spatial input into a latent feature space of $[B, 64, 7, 7]$ and enforces unit vector normalization.
-3. **Contrast Computing:** Evaluates local Cosine distances to yield a distinctive contrast map $[B, 7, 7]$.
-4. **Latency Encoding:** Translates the contrast map into real-time binary spike sequences of size $[T, B, 1, 7, 7]$.
-5. **SNN Classification:** The temporal spike streams pass through a Spiking Neural Network consisting of Convolutional and **Leaky Integrate-and-Fire (LIF)** layers, accumulating membrane potentials to output the final classification.
+Several retinal mechanisms contribute to efficient object recognition:
 
----
+* Enhancement of edges and boundaries
+* Suppression of homogeneous regions
+* Detection of local structural changes
+* Prioritization of visually distinctive stimuli
 
-## 🛠️ Configuration & Core Hyperparameters
+These mechanisms allow the visual system to allocate neural resources toward informative regions while reducing redundant processing.
 
-The model is optimized for hardware-friendly deployment, prioritizing high network sparsity:
-
-* **TIMESTEP  = 12**: The number of simulation time steps for spiking neurons.
-* **THRESHOLD = 0.4**: The quantile threshold for contrast filtering (effectively zeroing out background noise).
-* **Surrogate Gradient**: Employs `fast_sigmoid` to bypass the non-differentiable nature of discrete binary spikes during backpropagation.
+RetinaSpike aims to capture these principles in a computationally efficient framework suitable for Spiking Neural Networks.
 
 ---
 
-## 📈 Key Advantages
+## Architecture Overview
 
-* **High System Sparsity:** Driven by retinal lateral inhibition, only critical information triggers spikes. This drastically cuts down redundant operations, paving the way for low-power deployment on neuromorphic hardware chips.
-* **Lossless Spatial Encoding:** Unlike time-consuming rate coding methods, contrast-latency coding preserves the structural and spatial correlations of objects within a very short simulation window.
+### 1. Receptive Field Feature Extraction
+
+Raw grayscale images are first processed through convolutional receptive fields.
+
+The feature extractor transforms low-level pixel information into a higher-dimensional feature representation that captures local patterns such as:
+
+* Edges
+* Corners
+* Orientations
+* Textural structures
+
+Feature vectors are L2-normalized to reduce sensitivity to illumination and intensity variations.
+
+**Input**
+
+[B, 1, 28, 28]
+
+**Feature Representation**
+
+[B, 64, 7, 7]
+
+---
+
+### 2. Retina-Inspired Local Contrast Detection
+
+To identify visually informative regions, RetinaSpike computes local feature contrast within a sliding 3×3 neighborhood.
+
+For every spatial location:
+
+1. The center feature vector is compared with its surrounding neighbors.
+2. Cosine similarity is calculated in feature space.
+3. Similar neighborhoods are suppressed.
+4. Structurally distinctive regions generate stronger contrast responses.
+
+This mechanism is inspired by the contrast-enhancing effect of retinal lateral inhibition.
+
+As a result:
+
+* Uniform regions produce low responses.
+* Object boundaries produce high responses.
+* Salient visual structures become emphasized.
+
+**Contrast Map**
+
+[B, 7, 7]
+
+---
+
+### 3. Latency-Based Spike Encoding
+
+The generated contrast map is transformed into temporal spike sequences.
+
+Higher contrast values correspond to earlier spike emission times:
+
+* Strong contrast → Early spikes
+* Weak contrast → Late spikes
+* Suppressed regions → No spikes
+
+This strategy follows the principle that visually important information should be transmitted first.
+
+The resulting spike tensor has the shape:
+
+[T, B, 1, 7, 7]
+
+where T represents the simulation timesteps.
+
+---
+
+### 4. Spiking Neural Classification
+
+The generated spike streams are processed by a Spiking Neural Network composed of:
+
+* Convolutional layers
+* Leaky Integrate-and-Fire (LIF) neurons
+* Surrogate gradient learning
+
+Membrane potentials accumulate over time and produce the final classification output.
+
+---
+
+## Data Processing Pipeline
+
+Input Image
+↓
+Feature Extraction
+↓
+Feature-Space Contrast Detection
+↓
+Contrast Saliency Map
+↓
+Latency Spike Encoding
+↓
+Sparse Spike Sequence
+↓
+Spiking Neural Network
+↓
+Classification Output
+
+---
+
+## Configuration
+
+```python
+TIMESTEP = 12
+THRESHOLD = 0.4
+```
+
+### TIMESTEP
+
+Number of simulation steps used by spiking neurons.
+
+### THRESHOLD
+
+Minimum contrast level required for spike generation.
+
+### Surrogate Gradient
+
+Fast sigmoid surrogate gradients are employed to enable end-to-end backpropagation through discrete spike events.
+
+---
+
+## Key Characteristics
+
+### Contrast-Aware Encoding
+
+Only visually distinctive structures are encoded into spikes, reducing redundant neural activity.
+
+### Sparse Neural Activity
+
+Large homogeneous regions are naturally suppressed, leading to fewer spike events and higher efficiency.
+
+### Object-Oriented Visual Representation
+
+The encoding process emphasizes boundaries and structural cues that are important for object recognition.
+
+### Temporal Information Prioritization
+
+More informative visual regions are transmitted earlier through latency coding.
+
+### Hardware-Friendly Design
+
+Sparse spike generation makes the framework suitable for neuromorphic and event-driven computing platforms.
+
+---
+
+## Research Motivation
+
+Most conventional spike encoding methods operate directly on pixel intensities, often generating redundant neural activity from visually uninformative regions.
+
+RetinaSpike explores an alternative approach inspired by biological vision:
+
+Instead of asking "How bright is a pixel?", RetinaSpike asks:
+
+"How visually distinctive is this location compared to its surroundings?"
+
+By encoding structural saliency rather than raw intensity, the network focuses computational resources on information that is more relevant for object recognition.
+
+---
+
+## Future Directions
+
+* Dynamic adaptive contrast thresholds
+* Multi-scale retinal receptive fields
+* Color vision extensions
+* Event-camera integration
+* Neuromorphic hardware deployment
+* Attention-guided spike generation
+* Self-supervised retinal representation learning
+
+---
+
+## Citation
+
+If you use RetinaSpike in your research, please cite:
+
+RetinaSpike: Retina-Inspired Contrast-Aware Spiking Neural Network for Sparse Visual Encoding and Object Recognition.
