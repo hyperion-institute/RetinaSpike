@@ -52,12 +52,6 @@ python train.py
 
 Trains `FeatureExtractor` + `SNNModel` jointly for `EPOCHS` epochs, evaluates on the MNIST test set each epoch, and saves the best checkpoint to `RetinaSpike.pth`. Key hyperparameters (`TIMESTEP`, `THRESHOLD`, `EPOCHS`, `BATCH_SIZE`, `LEARNING_RATE`) are set at the top of the script.
 
-## Repository structure
-
-```
-train.py                  # data loading, model definitions, training/eval loop
-RetinaSpike_report.pdf    # full write-up: motivation, related work, method, complete results
-```
 
 ## Related work
 
